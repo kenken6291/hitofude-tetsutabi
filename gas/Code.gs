@@ -1,5 +1,5 @@
 /**
- * ひとふで鉄旅 — GAS バックエンド
+ * ひとふで鉄旅～JR完乗コレクション — GAS バックエンド
  * v1.0.0
  *
  * 【初回セットアップ】
@@ -14,7 +14,7 @@
  */
 
 const APP_VERSION = 'v1.0.0';
-const APP_NAME = 'ひとふで鉄旅';
+const APP_NAME = 'ひとふで鉄旅～JR完乗コレクション';
 const PROPS = PropertiesService.getScriptProperties();
 const SESSION_TTL = 21600; // 6時間（CacheService の上限）
 const MAX_FAIL = 5;

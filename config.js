@@ -1,12 +1,12 @@
 /**
- * ひとふで鉄旅 — 設定ファイル
+ * ひとふで鉄旅～JR完乗コレクション — 設定ファイル
  * GAS の URL などはここだけを書き換えてください（コード本体には書きません）。
  */
 window.APP_CONFIG = {
   // GAS「ウェブアプリ」としてデプロイした URL（…/exec）
   GAS_URL: "https://script.google.com/macros/s/AKfycbz5ZwX4ZmWX9UYqt4WYGWiHmhBchMH6I2q6FymwAcEzNFSjymFzUlEqoVWxoMixgBOZ/exec",
 
-  APP_NAME: "ひとふで鉄旅",
+  APP_NAME: "ひとふで鉄旅～JR完乗コレクション",
   VERSION: "v1.0.0",
 
   // 写真・動画アップロードの上限（MB）。GAS の受信上限を考慮して 20MB 程度まで
