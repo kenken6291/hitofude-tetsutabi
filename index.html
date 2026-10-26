@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1C2B4A">
+<title>ひとふで鉄旅｜JR完乗コレクション＆一筆書きアドベンチャー</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Antique&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <span class="brand-name">ひとふで鉄旅</span>
+    <span class="ver" id="ver">v1.0.0</span>
+  </div>
+  <label class="switch" title="ONにすると、線をタップするだけで乗車記録できます">
+    <input type="checkbox" id="quickToggle">
+    <span class="switch-track" aria-hidden="true"></span>
+    <span class="switch-label">タップで乗車</span>
+  </label>
+  <button class="icon-btn" id="helpBtn" aria-label="使い方ガイド">?</button>
+</header>
+
+<main>
+  <!-- マップ -->
+  <section id="view-map" class="view active" aria-label="乗車マップ">
+    <button class="hero" id="hero" type="button" aria-label="マイページを開く"></button>
+    <div class="map-wrap">
+      <div id="map"></div>
+      <div class="legend" aria-label="凡例">
+        <span><i style="background:#9AA3A8"></i>未乗車</span>
+        <span><i style="background:#11804A"></i>完乗</span>
+        <span><i style="background:#D98A1C"></i>挑戦中</span>
+        <span><i style="background:#B8322A"></i>走破済み</span>
+      </div>
+      <div id="routeChip" class="route-chip" hidden></div>
+      <div id="builderBar" class="builder-bar" hidden></div>
+    </div>
+    <div class="regions" id="regions" aria-label="地方ごとの完乗率"></div>
+  </section>
+
+  <!-- 旅を作る -->
+  <section id="view-trip" class="view" aria-label="旅を作る">
+    <div class="pane">
+      <h2>AI車掌に旅を相談する</h2>
+      <p class="lead">気分を選ぶと、同じ駅を2度通らない「一筆書き」の旅を提案します。</p>
+      <div class="chips" id="moodChips" role="group" aria-label="気分タグ"></div>
+      <div class="row2">
+        <label class="field">日数
+          <select id="aiDays">
+            <option value="1">日帰り</option>
+            <option value="2" selected>週末2日</option>
+            <option value="3">3日</option>
+            <option value="5">5日以上</option>
+          </select>
+        </label>
+        <label class="field">出発駅
+          <select id="aiStart"><option value="">おまかせ</option></select>
+        </label>
+      </div>
+      <label class="check"><input type="checkbox" id="aiUnridden" checked> まだ乗っていない線を優先する</label>
+      <label class="check"><input type="checkbox" id="aiLocal"> 在来線だけで旅する</label>
+      <label class="field">リクエスト（任意）
+        <span class="with-mic">
+          <textarea id="aiFree" rows="2" maxlength="300" placeholder="例：海の見える区間を多めに、最後は温泉で"></textarea>
+          <button type="button" class="mic" data-mic="#aiFree" aria-label="音声で入力">🎤</button>
+        </span>
+      </label>
+      <button class="btn primary wide" id="aiGo" type="button">旅を提案してもらう</button>
+      <div id="aiResult"></div>
+    </div>
+
+    <div class="pane">
+      <h2>自分で線を引く</h2>
+      <p class="lead">マップで駅を順にタップすると、間の線路を一筆書きでつなぎます。</p>
+      <button class="btn wide" id="builderStart" type="button">マップでルートを作る</button>
+    </div>
+
+    <div class="pane">
+      <h2>わたしの一筆書き</h2>
+      <div id="routeList"></div>
+    </div>
+  </section>
+
+  <!-- 想い出 -->
+  <section id="view-memories" class="view" aria-label="想い出">
+    <div class="pane-head">
+      <div class="seg" role="tablist" aria-label="表示の切り替え">
+        <button type="button" role="tab" data-scope="public" aria-selected="true">みんなの旅</button>
+        <button type="button" role="tab" data-scope="mine" aria-selected="false">自分の想い出</button>
+      </div>
+      <button class="btn primary" id="newMemory" type="button">＋ 想い出を記録</button>
+    </div>
+    <div id="tlFilter"></div>
+    <div id="timeline" class="cards"></div>
+    <button class="btn ghost wide" id="tlMore" type="button" hidden>もっと見る</button>
+  </section>
+
+  <!-- 切符帳 -->
+  <section id="view-tickets" class="view" aria-label="切符帳">
+    <div class="pane">
+      <h2>切符帳</h2>
+      <p class="lead">一筆書きの旅を決めるたびに、オリジナル切符が発行されます。走破すると入鋏とスタンプが押されます。</p>
+      <div id="ticketGrid" class="ticket-grid"></div>
+    </div>
+  </section>
+
+  <!-- マイページ -->
+  <section id="view-me" class="view" aria-label="マイページ">
+    <div id="meBox"></div>
+  </section>
+</main>
+
+<nav class="tabbar" aria-label="メニュー">
+  <button type="button" data-view="map" aria-current="page"><span class="tab-ic">🗾</span>マップ</button>
+  <button type="button" data-view="trip"><span class="tab-ic">🧭</span>旅を作る</button>
+  <button type="button" data-view="memories"><span class="tab-ic">📷</span>想い出</button>
+  <button type="button" data-view="tickets"><span class="tab-ic">🎫</span>切符帳</button>
+  <button type="button" data-view="me"><span class="tab-ic">🧳</span>マイページ</button>
+</nav>
+
+<!-- 認証 -->
+<div id="auth" class="overlay auth" hidden>
+  <div class="auth-card">
+    <div class="auth-ticket">
+      <span class="auth-from">はじまり</span><span class="auth-arrow">→</span><span class="auth-to">どこまでも</span>
+      <span class="auth-name">ひとふで鉄旅</span>
+    </div>
+
+    <form data-panel="login" id="loginForm" autocomplete="on">
+      <h2>ログイン</h2>
+      <label class="field">メールアドレス<input type="email" id="loginEmail" autocomplete="email" required></label>
+      <label class="field">パスワード
+        <span class="pw"><input type="password" id="loginPw" autocomplete="current-password" required><button type="button" class="eye" aria-label="パスワードを表示">👁</button></span>
+      </label>
+      <button class="btn primary wide" type="submit">ログイン</button>
+      <div class="auth-links">
+        <button type="button" class="link" data-go="register">はじめての方（新規登録）</button>
+        <button type="button" class="link" data-go="forgot">パスワードを忘れた</button>
+        <button type="button" class="link" data-tutorial>使い方を見る</button>
+      </div>
+    </form>
+
+    <form data-panel="register" id="registerForm" hidden>
+      <h2>新規登録</h2>
+      <label class="field">メールアドレス<input type="email" id="regEmail" autocomplete="email" required></label>
+      <label class="field">ニックネーム（公開されます）<input type="text" id="regNick" maxlength="20" required></label>
+      <div class="terms" tabindex="0" aria-label="利用規約・免責事項">
+        <h3>利用規約・免責事項</h3>
+        <p><b>自己責任の原則</b>　本サービスは個人が運営する無料の非公式サービスで、JR各社とは関係ありません。提案される経路、営業キロ、乗車券のルール、運行状況は参考情報で、正確さや最新性を保証しません。実際の旅行や乗車券の購入は、鉄道会社の最新情報を確認のうえ、ご自身の責任で行ってください。</p>
+        <p><b>免責事項</b>　本サービスの利用で生じた損害（旅行計画の不備、データの消失、通信障害などを含む）について、運営者は責任を負いません。サービスは予告なく変更・停止することがあります。</p>
+        <p><b>注意事項</b>　線路内や立入禁止区域での撮影、列車の運行を妨げる行為はしないでください。他人の顔や個人情報が分かる写真を無断で公開しないでください。公開した写真・動画・コメントはほかの会員が見られます。</p>
+        <p><b>ユーザー間のトラブル</b>　会員同士のやり取りで生じたトラブルは、当事者間で解決してください。運営者は仲裁しません。不快な相手はブロック機能で遮断できます。</p>
+      </div>
+      <label class="check"><input type="checkbox" id="regAgree"> 利用規約・免責事項・注意事項を読み、自己責任の原則とユーザー間トラブルの当事者間解決に同意します</label>
+      <button class="btn primary wide" type="submit" id="regSubmit" disabled>同意して登録する</button>
+      <p class="hint">登録すると、仮パスワードがメールで届きます。</p>
+      <div class="auth-links"><button type="button" class="link" data-go="login">ログインに戻る</button></div>
+    </form>
+
+    <form data-panel="forgot" id="forgotForm" hidden>
+      <h2>パスワードの再発行</h2>
+      <p class="hint">登録したメールアドレスに、新しい仮パスワードを送ります。</p>
+      <label class="field">メールアドレス<input type="email" id="forgotEmail" autocomplete="email" required></label>
+      <button class="btn primary wide" type="submit">仮パスワードを送る</button>
+      <div class="auth-links"><button type="button" class="link" data-go="login">ログインに戻る</button></div>
+    </form>
+
+    <form data-panel="change" id="changeForm" hidden>
+      <h2>新しいパスワードを設定</h2>
+      <p class="hint">はじめてのログインです。仮パスワードから、ご自身のパスワードに変更してください（8文字以上・英字と数字を含む）。</p>
+      <label class="field">仮パスワード
+        <span class="pw"><input type="password" id="chgCurrent" autocomplete="current-password" required><button type="button" class="eye" aria-label="パスワードを表示">👁</button></span>
+      </label>
+      <label class="field">新しいパスワード
+        <span class="pw"><input type="password" id="chgNew" autocomplete="new-password" minlength="8" required><button type="button" class="eye" aria-label="パスワードを表示">👁</button></span>
+      </label>
+      <label class="field">新しいパスワード（確認）
+        <span class="pw"><input type="password" id="chgNew2" autocomplete="new-password" minlength="8" required><button type="button" class="eye" aria-label="パスワードを表示">👁</button></span>
+      </label>
+      <button class="btn primary wide" type="submit">パスワードを変更する</button>
+      <div class="auth-links"><button type="button" class="link" id="chgLogout">ログアウト</button></div>
+    </form>
+  </div>
+</div>
+
+<!-- モーダル -->
+<div id="modal" class="overlay" hidden>
+  <div id="modalBox" class="sheet" role="dialog" aria-modal="true"></div>
+</div>
+
+<div id="toast" aria-live="polite"></div>
+<div id="stamp" aria-hidden="true"><span class="stamp-text">乗車</span></div>
+<div id="busy" aria-hidden="true"><span class="busy-train">🚃</span></div>
+
+<script src="config.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="js/rail-data.js"></script>
+<script src="js/rail.js"></script>
+<script src="js/voice.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
