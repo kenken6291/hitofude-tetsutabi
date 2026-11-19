@@ -191,6 +191,7 @@ main { padding-bottom: calc(var(--tab-h) + 8px); }
 }
 .field textarea { resize: vertical; }
 .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: .7rem; }
+.model-hint { font-size: .78rem; margin: -.3rem 0 .8rem; }
 .check { display: flex; gap: .5rem; align-items: flex-start; font-size: .9rem; margin: 0 0 .6rem; cursor: pointer; }
 .check input { margin-top: .4rem; width: 18px; height: 18px; flex: none; }
 .pw, .with-mic { display: flex; gap: .4rem; align-items: stretch; }
@@ -367,7 +368,7 @@ body.is-busy #busy { opacity: 1; }
 <header class="topbar">
   <div class="brand">
     <span class="brand-name">ひとふで鉄旅<span class="brand-sub">～JR完乗コレクション</span></span>
-    <span class="ver" id="ver">v1.0.0</span>
+    <span class="ver" id="ver">v1.1.0</span>
   </div>
   <label class="switch" title="ONにすると、線をタップするだけで乗車記録できます">
     <input type="checkbox" id="quickToggle">
@@ -422,6 +423,10 @@ body.is-busy #busy { opacity: 1; }
           <button type="button" class="mic" data-mic="#aiFree" aria-label="音声で入力">🎤</button>
         </span>
       </label>
+      <label class="field">AIモデル
+        <select id="aiModel"></select>
+      </label>
+      <p class="hint model-hint">選んだモデルが使えない時は、汎用の最新モデルに自動で切り替わります。</p>
       <button class="btn primary wide" id="aiGo" type="button">旅を提案してもらう</button>
       <div id="aiResult"></div>
     </div>
@@ -1342,7 +1347,7 @@ ${pms}
       try {
         res = await fetch(C.GAS_URL, {
           method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-          body: JSON.stringify(Object.assign({ action, token: S.token }, data))
+          body: JSON.stringify(Object.assign({ action, token: S.token }, AI_ACTIONS.includes(action) ? { model: getModel() } : {}, data))
         });
       } catch (_) { throw new Error('通信できませんでした。電波の状態を確認して、もう一度お試しください'); }
       let j;
@@ -1352,10 +1357,44 @@ ${pms}
         else if (j.code === 'MUST_CHANGE') showAuth('change');
         const e = new Error(j.error || '処理に失敗しました'); e.code = j.code; throw e;
       }
+      if (j.data && j.data.model) noteModel(j.data);
       return j.data;
     } finally { if (!silent) loading(false); }
   }
   window.API = { call: api };
+
+  /* =========================================================
+   * Gemini モデル選択（端末ごとに保存）
+   * ======================================================= */
+  const AI_ACTIONS = ['aiRoute', 'aiText'];
+  const MODEL_KEY = 'hitofude_gemini_model';
+  const MODEL_OPTIONS = Array.isArray(C.GEMINI_MODEL_OPTIONS) && C.GEMINI_MODEL_OPTIONS.length
+    ? C.GEMINI_MODEL_OPTIONS : [{ value: '', label: '自動モード（汎用の最新）' }];
+  let fallbackNoticed = false;
+  function getModel() {
+    let v = null;
+    try { v = localStorage.getItem(MODEL_KEY); } catch (_) {}
+    if (v !== null && MODEL_OPTIONS.some(o => o.value === v)) return v;
+    return C.GEMINI_MODEL || '';
+  }
+  function modelLabel(v) { const o = MODEL_OPTIONS.find(x => x.value === v); return o ? o.label : (v || '自動モード（汎用の最新）'); }
+  function noteModel(d) {
+    if (d.fallback && !fallbackNoticed) {
+      fallbackNoticed = true;
+      toast(`${modelLabel(d.requestedModel)} が使えなかったため、${d.model} に自動で切り替えました`, 'warn');
+    }
+  }
+  function setupModelPicker() {
+    const sel = $('#aiModel');
+    if (!sel) return;
+    sel.innerHTML = MODEL_OPTIONS.map(o => `<option value="${esc(o.value)}">${esc(o.label)}</option>`).join('');
+    sel.value = getModel();
+    sel.onchange = () => {
+      try { localStorage.setItem(MODEL_KEY, sel.value); } catch (_) {}
+      fallbackNoticed = false;
+      toast(`AIモデル：${modelLabel(sel.value)}`);
+    };
+  }
 
   /* =========================================================
    * 共通UI
@@ -2451,6 +2490,7 @@ ${pms}
   }
 
   $('#ver').textContent = C.VERSION || '';
+  setupModelPicker();
   if (S.token) boot();
   else { showAuth('login'); if (!store.get('htf_tutorial')) openTutorial(); }
 })();
